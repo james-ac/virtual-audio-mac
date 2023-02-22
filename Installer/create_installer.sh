@@ -4,42 +4,45 @@
 
 # create installer for different channel versions
 
-for channels in 2 16 64 128 256
+# for channels in 2 16 64 128 256
+for channels in 2
 do
 
 ch=$channels"ch"
-driverName="BlackHole"
+driverName="AeriCast"
 version=`git describe --tags --abbrev=0`
-bundleID="audio.existential.$driverName$ch"
+bundleID="virtual-audio.com.$driverName$ch"
+icon="AeriCast.icns"
 
 # Build
 xcodebuild \
 -project BlackHole.xcodeproj \
 -configuration Release \
--target BlackHole CONFIGURATION_BUILD_DIR=build \
+-target AeriCast CONFIGURATION_BUILD_DIR=build \
 PRODUCT_BUNDLE_IDENTIFIER=$bundleID \
-GCC_PREPROCESSOR_DEFINITIONS='$GCC_PREPROCESSOR_DEFINITIONS 
-kNumber_Of_Channels='$channels' 
-kPlugIn_BundleID=\"'$bundleID'\" 
-kDriver_Name=\"'$driverName'\"'
+GCC_PREPROCESSOR_DEFINITIONS='$GCC_PREPROCESSOR_DEFINITIONS
+kNumber_Of_Channels='$channels'
+kPlugIn_BundleID=\"'$bundleID'\"
+kDriver_Name=\"'$driverName'\"
+kPlugIn_Icon=\"'$icon'\"'
 
 # Generate a new UUID
 uuid=$(uuidgen)
-awk '{sub(/e395c745-4eea-4d94-bb92-46224221047c/,"'$uuid'")}1' build/BlackHole.driver/Contents/Info.plist > Temp.plist
-mv Temp.plist build/BlackHole.driver/Contents/Info.plist
+awk '{sub(/e395c745-4eea-4d94-bb92-46224221047c/,"'$uuid'")}1' build/AeriCast.driver/Contents/Info.plist > Temp.plist
+mv Temp.plist build/AeriCast.driver/Contents/Info.plist
 
 mkdir installer/root
-mv build/BlackHole.driver installer/root/$driverName$ch.driver
+mv build/AeriCast.driver installer/root/$driverName$ch.driver
 rm -r build
 
 # Sign
-codesign --force --deep --options runtime --sign Q5C99V536K Installer/root/$driverName$ch.driver
+codesign --force --deep --options runtime --sign "Developer ID Application: AeriCast Inc (TP685V6M24)" Installer/root/$driverName$ch.driver
 
 # Create package with pkgbuild
 chmod 755 Installer/Scripts/preinstall
 chmod 755 Installer/Scripts/postinstall
 
-pkgbuild --sign "Q5C99V536K" --root Installer/root --scripts Installer/Scripts --install-location /Library/Audio/Plug-Ins/HAL Installer/BlackHole.pkg
+pkgbuild --sign "Developer ID Installer: AeriCast Inc (TP685V6M24)" --root Installer/root --scripts Installer/Scripts --install-location /Library/Audio/Plug-Ins/HAL Installer/AeriCast.pkg
 rm -r Installer/root
 
 # Create installer with productbuild
@@ -65,16 +68,16 @@ echo "<?xml version=\"1.0\" encoding='utf-8'?>
     <choice id=\"$bundleID\" visible='true' title=\"$driverName $ch\" start_selected='true'>
         <pkg-ref id=\"$bundleID\"/>
     </choice>
-    <pkg-ref id=\"$bundleID\" version=\"$version\" onConclusion='none'>BlackHole.pkg</pkg-ref>
+    <pkg-ref id=\"$bundleID\" version=\"$version\" onConclusion='none'>AeriCast.pkg</pkg-ref>
 </installer-gui-script>" >> distribution.xml
 
 
-productbuild --sign "Q5C99V536K" --distribution distribution.xml --resources . --package-path BlackHole.pkg $driverName$ch.$version.pkg
+productbuild --sign "Developer ID Installer: AeriCast Inc (TP685V6M24)" --distribution distribution.xml --resources . --package-path BlackHole.pkg $driverName$ch.$version.pkg
 rm distribution.xml
-rm -f BlackHole.pkg
+rm -f AeriCast.pkg
 
 # Notarize
-xcrun notarytool submit $driverName$ch.$version.pkg --team-id Q5C99V536K --progress --wait --keychain-profile "notarize"
+xcrun notarytool submit $driverName$ch.$version.pkg --team-id "TP685V6M24" --progress --wait --keychain-profile "notarize"
 
 xcrun stapler staple $driverName$ch.$version.pkg
 
